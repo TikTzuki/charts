@@ -15,7 +15,7 @@ extraDeploy: []
 diagnosticMode:
   enabled: false
   command:
-    - sleep
+    - ls
   args:
     - infinity
 admin:
@@ -29,8 +29,8 @@ admin:
     debug: false
   replicaCount: 1
   containerPorts:
-    http: 80
-    https: 443
+    http: 8080
+    https: 8443
   livenessProbe:
     enabled: true
     initialDelaySeconds: 5
@@ -102,7 +102,10 @@ admin:
   schedulerName: ""
   terminationGracePeriodSeconds: ""
   lifecycleHooks: {}
-  extraEnvVars: []
+  extraEnvVars:
+    DATABASE_URL: "jdbc:postgresql://postgres-postgresql.database.svc.cluster.local:5432/fnb-admin"
+    DATABASE_USER: "postgres"
+    DATABASE_PASSWORD: "P@ssword789"
   extraEnvVarsCM: ""
   extraEnvVarsSecret: ""
   extraVolumes: []
@@ -124,6 +127,26 @@ admin:
     extraTls: []
     secrets: []
     extraRules: []
+  serviceAccount:
+    create: false
+    name: ""
+    annotations: {}
+    automountServiceAccountToken: true
+  service:
+    type: LoadBalancer
+    ports:
+      http: 8080
+    nodePorts:
+      http: ""
+    clusterIP: ""
+    loadBalancerIP: ""
+    loadBalancerClass: ""
+    loadBalancerSourceRanges: []
+    externalTrafficPolicy: Cluster
+    annotations: {}
+    extraPorts: []
+    sessionAffinity: ClientIP
+    sessionAffinityConfig: {}
   persistence:
     enabled: false
     mountPath: /fnb/admin/data
@@ -132,11 +155,19 @@ admin:
     annotations: {}
     accessModes:
       - ReadWriteOnce
-    size: 8Gi
+    size: 1Gi
     existingClaim: ""
     selector: {}
     dataSource: {}
-
+cms:
+  image:
+    registry: docker.io
+    repository: tiktuzki/fnb-cms
+    tag: latest
+    digest: ""
+    pullPolicy: Always
+    pullSecrets: []
+    debug: false
 volumePermissions:
   enabled: false
   image:

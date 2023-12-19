@@ -34,7 +34,7 @@ spec:
         app.kubernetes.io/component: admin
     spec:
       serviceAccountName: {{ template "fnb.admin.serviceAccountName" . }}
-      {{- include "fnb.admin.imagePullSecrets" . | nindent 6 }}
+      {{- include "fnb.imagePullSecrets" . | nindent 6 }}
       {{- if .Values.admin.hostAliases }}
       hostAliases: {{- include "common.tplvalues.render" (dict "value" .Values.admin.hostAliases "context" $) | nindent 8 }}
       {{- end }}
@@ -67,27 +67,6 @@ spec:
       {{- if .Values.admin.terminationGracePeriodSeconds }}
       terminationGracePeriodSeconds: {{ .Values.admin.terminationGracePeriodSeconds }}
       {{- end }}
-      initContainers:
-        {{- if and .Values.volumePermissions.enabled .Values.persistence.enabled }}
-        - name: volume-permissions
-          image: {{ include "fnb.admin.volumePermissions.image" . }}
-          imagePullPolicy: {{ .Values.volumePermissions.image.pullPolicy | quote }}
-          command:
-            - %%commands%%
-          securityContext: {{- include "common.tplvalues.render" (dict "value" .Values.volumePermissions.containerSecurityContext "context" $) | nindent 12 }}
-          {{- if .Values.volumePermissions.resources }}
-          resources: {{- toYaml .Values.volumePermissions.resources | nindent 12 }}
-          {{- end }}
-          volumeMounts:
-            - name: admin-data
-              mountPath: {{ .Values.persistence.mountPath }}
-              {{- if .Values.persistence.subPath }}
-              subPath: {{ .Values.persistence.subPath }}
-              {{- end }}
-        {{- end }}
-        {{- if .Values.admin.initContainers }}
-          {{- include "common.tplvalues.render" (dict "value" .Values.admin.initContainers "context" $) | nindent 8 }}
-        {{- end }}
       containers:
         - name: fnb-admin
           image: {{ template "fnb.admin.image" . }}
@@ -96,8 +75,6 @@ spec:
           securityContext: {{- omit .Values.admin.containerSecurityContext "enabled" | toYaml | nindent 12 }}
           {{- end }}
           {{- if .Values.diagnosticMode.enabled }}
-          command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 12 }}
-          {{- else if .Values.admin.command }}
           command: {{- include "common.tplvalues.render" (dict "value" .Values.admin.command "context" $) | nindent 12 }}
           {{- end }}
           {{- if .Values.diagnosticMode.enabled }}
@@ -108,10 +85,9 @@ spec:
           env:
             - name: BITNAMI_DEBUG
               value: {{ ternary "true" "false" (or .Values.admin.image.debug .Values.diagnosticMode.enabled) | quote }}
-            - name: foo
-              value: bar
-            {{- if .Values.admin.extraEnvVars }}
-            {{- include "common.tplvalues.render" (dict "value" .Values.admin.extraEnvVars "context" $) | nindent 12 }}
+            {{- range $key , $value := .Values.admin.extraEnvVars }}
+            - name: {{ $key }}
+              value: "{{ $value }}"
             {{- end }}
           envFrom:
             {{- if .Values.admin.extraEnvVarsCM }}
@@ -135,29 +111,34 @@ spec:
           livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.admin.customLivenessProbe "context" $) | nindent 12 }}
           {{- else if .Values.admin.livenessProbe.enabled }}
           livenessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.admin.livenessProbe "enabled") "context" $) | nindent 12 }}
-            %%httpGet || command || etc%%
+            httpGet:
+              path: /-/healthy
+              port: http
           {{- end }}
           {{- if .Values.admin.customReadinessProbe }}
           readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.admin.customReadinessProbe "context" $) | nindent 12 }}
           {{- else if .Values.admin.readinessProbe.enabled }}
           readinessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.admin.readinessProbe "enabled") "context" $) | nindent 12 }}
-            %%httpGet || command || etc%%
+            httpGet:
+              path: /-/ready
+              port: http
           {{- end }}
           {{- if .Values.admin.customStartupProbe }}
           startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.admin.customStartupProbe "context" $) | nindent 12 }}
           {{- else if .Values.admin.startupProbe.enabled }}
           startupProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.admin.startupProbe "enabled") "context" $) | nindent 12 }}
-            %%httpGet || command || etc%%
+            tcpSocket:
+              port: http
           {{- end }}
           {{- end }}
           {{- if .Values.admin.lifecycleHooks }}
           lifecycle: {{- include "common.tplvalues.render" (dict "value" .Values.admin.lifecycleHooks "context" $) | nindent 12 }}
           {{- end }}
           volumeMounts:
-            - name: foo
-              mountPath: {{ .Values.persistence.mountPath }}
-              {{- if .Values.persistence.subPath }}
-              subPath: {{ .Values.persistence.subPath }}
+            - name: data
+              mountPath: {{ .Values.admin.persistence.mountPath }}
+              {{- if .Values.admin.persistence.subPath }}
+              subPath: {{ .Values.admin.persistence.subPath }}
               {{- end }}
           {{- if .Values.admin.extraVolumeMounts }}
           {{- include "common.tplvalues.render" (dict "value" .Values.admin.extraVolumeMounts "context" $) | nindent 12 }}
@@ -166,10 +147,10 @@ spec:
         {{- include "common.tplvalues.render" ( dict "value" .Values.admin.sidecars "context" $) | nindent 8 }}
         {{- end }}
       volumes:
-        - name: foo
-        {{- if .Values.persistence.enabled }}
+        - name: data
+        {{- if .Values.admin.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ default (include "common.names.fullname" .) .Values.persistence.existingClaim }}
+            claimName: {{ default (include "common.names.fullname" .) .Values.admin.persistence.existingClaim }}
         {{- else }}
           emptyDir: {}
         {{- end }}
