@@ -136,7 +136,7 @@ persistence:
 
   existingClaim:
     enabled: false
-    volumeMounts: 
+    volumeMounts:
       - name: "rd"
         mountPath: "/app"
       - name: "rd-config"
@@ -225,7 +225,7 @@ livenessProbe:
 
   setting:
     # exec:
-    #   command: 
+    #   command:
     #   - cat
     #   - /tmp/health
     httpGet:
@@ -235,7 +235,7 @@ livenessProbe:
     # tcpSocket:
     #   port: http
 
-    
+
 readinessProbe:
   enabled: true
 
@@ -247,7 +247,7 @@ readinessProbe:
 
   setting:
     # exec:
-    #   command: 
+    #   command:
     #   - cat
     #   - /tmp/health
     httpGet:
@@ -260,15 +260,15 @@ readinessProbe:
 startupProbe:
   enabled: false
 
-  initialDelaySeconds: 
-  periodSeconds: 
-  timeoutSeconds: 
-  successThreshold: 
-  failureThreshold: 
+  initialDelaySeconds:
+  periodSeconds:
+  timeoutSeconds:
+  successThreshold:
+  failureThreshold:
 
   setting:
     #exec:
-      # command: 
+      # command:
       # - cat
       # - /tmp/health
     # httpGet:
